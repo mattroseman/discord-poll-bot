@@ -59,69 +59,71 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Content[:5] == "!poll" {
-		matches := pollRegex.FindStringSubmatch(m.Content)
-		if matches == nil {
-			_, err := s.ChannelMessageSend(m.ChannelID, "Sorry, I couldn't understand that command.")
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
-		description := matches[1]
-		options := matches[2]
-
-		currentPoll = poll.New(description, strings.Split(options, ", "))
-
-		_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("New poll started for: %s\nwith options: %q", description, options))
-		if err != nil {
-			panic(err)
-		}
+		handleNewPoll(s, m)
 	}
 
 	if m.Content[:5] == "!vote" {
-		// TODO check that user hasn't voted already
-		// TODO check that there is an active poll
-		matches := voteRegex.FindStringSubmatch(m.Content)
-		if matches == nil {
-			_, err := s.ChannelMessageSend(m.ChannelID, "Sorry I couldn't understand that command.")
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
-		option := matches[1]
-
-		err := currentPoll.Vote(m.Author.ID, option)
-		if err != nil {
-			// TODO check this error type
-			_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Sorry, %s, is not a valid option in the current poll", option))
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
-
-		_, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has voted for %s", m.Author.Username, option))
-		if err != nil {
-			panic(err)
-		}
+		handleNewVote(s, m)
 	}
 }
 
-// poll := poll.New("test poll", []string{"yes", "no"})
-// fmt.Printf("%+v\n", poll)
-//
-// err := poll.Vote("matt", "no")
-// if err != nil {
-// 	panic(err)
-// }
-// err = poll.Vote("tony", "yes")
-// if err != nil {
-// 	panic(err)
-// }
-// err = poll.Vote("aidan", "yes")
-// if err != nil {
-// 	panic(err)
-// }
-// fmt.Printf("%+v\n", poll)
-// fmt.Printf("%q\n", poll.GetResult())
+func handleNewPoll(s *discordgo.Session, m *discordgo.MessageCreate) {
+	matches := pollRegex.FindStringSubmatch(m.Content)
+	if matches == nil {
+		_, err := s.ChannelMessageSend(m.ChannelID,
+			fmt.Sprintf("Sorry %s, I couldn't understand that command.", m.Author.Username))
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+	description := matches[1]
+	options := matches[2]
+
+	currentPoll = poll.New(description, strings.Split(options, ", "))
+
+	_, err := s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("New poll started for: %s\nwith options: %q", description, options))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func handleNewVote(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// TODO check that there is an active poll
+	matches := voteRegex.FindStringSubmatch(m.Content)
+	if matches == nil {
+		_, err := s.ChannelMessageSend(m.ChannelID,
+			fmt.Sprintf("Sorry %s, I couldn't understand that command.", m.Author.Username))
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+	option := matches[1]
+
+	err := currentPoll.Vote(m.Author.ID, option)
+	if err != nil {
+		if _, ok := err.(*poll.AlreadyVotedError); ok {
+			_, err := s.ChannelMessageSend(m.ChannelID,
+				fmt.Sprintf("Sorry %s, you have already voted in this poll.", m.Author.Username))
+			if err != nil {
+				panic(err)
+			}
+			return
+		} else if _, ok := err.(*poll.InvalidOptionError); ok {
+			_, err := s.ChannelMessageSend(m.ChannelID,
+				fmt.Sprintf("Sorry %s, \"%s\" is an invalid option for this poll.", m.Author.Username, option))
+			if err != nil {
+				panic(err)
+			}
+			return
+		} else {
+			panic(err)
+		}
+	}
+
+	_, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has voted for %s", m.Author.Username, option))
+	if err != nil {
+		panic(err)
+	}
+}

@@ -2,6 +2,28 @@ package poll
 
 import "fmt"
 
+// InvalidOptionError is returned when a vote is cast for an option that doesn't
+// exist
+type InvalidOptionError struct {
+	msg    string
+	option string
+}
+
+func (e *InvalidOptionError) Error() string {
+	return fmt.Sprintf("%s\noption: %s\n", e.msg, e.option)
+}
+
+// AlreadyVotedError is returned when a user ties to vote multiple times for the
+// same poll
+type AlreadyVotedError struct {
+	msg  string
+	user string
+}
+
+func (e *AlreadyVotedError) Error() string {
+	return fmt.Sprintf("%s\nuser: %s\n", e.msg, e.user)
+}
+
 // Poll contains the data relevant to a particular poll. The description, the voting options,
 // and a list of votes.
 type Poll struct {
@@ -37,12 +59,12 @@ func New(description string, options []string) Poll {
 // Returns an error if the specified option isn't available.
 func (p *Poll) Vote(user string, option string) error {
 	if _, ok := p.Options[option]; !ok {
-		return fmt.Errorf("The given option isn't a valid option for this poll: %s", option)
+		return &InvalidOptionError{"The given option isn't valid for the current poll", option}
 	}
 
 	for _, vote := range p.Votes {
 		if vote.User == user {
-			return fmt.Errorf("User %s has already voted in this poll", user)
+			return &AlreadyVotedError{"The user already voted for the current poll", user}
 		}
 	}
 
