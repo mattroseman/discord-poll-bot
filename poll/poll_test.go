@@ -3,6 +3,7 @@ package poll
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -17,7 +18,7 @@ func TestNewPoll(t *testing.T) {
 			[]string{"yes", "no"},
 			true,
 			nil,
-			&Poll{[]string{"yes", "no"}, []Vote{}},
+			&Poll{[]string{"yes", "no"}, make(map[string][]Vote)},
 		},
 		{
 			[]string{},
@@ -45,7 +46,7 @@ func TestNewPoll(t *testing.T) {
 				t.Errorf("NewPoll didn't return an expected error: %v", test.err)
 			}
 
-			if !got.equal(*test.expected) {
+			if !reflect.DeepEqual(*test.expected, *got) {
 				t.Errorf("NewPoll returned incorect Poll.\nGot: %+v\nWant: %+v",
 					got, test.expected)
 			}
@@ -63,40 +64,55 @@ func TestVote(t *testing.T) {
 		expected *Poll
 	}{
 		{
-			&Poll{[]string{"yes", "no"}, []Vote{}},
+			&Poll{[]string{"yes", "no"}, make(map[string][]Vote)},
 			"yes",
 			"testuser",
 			true,
 			nil,
-			&Poll{[]string{"yes", "no"}, []Vote{Vote{"yes", "testuser"}}},
+			&Poll{
+				[]string{"yes", "no"},
+				map[string][]Vote{
+					"yes": []Vote{Vote{"yes", "testuser"}},
+				},
+			},
 		},
 		{
-			&Poll{[]string{"yes", "no"}, []Vote{}},
+			&Poll{[]string{"yes", "no"}, make(map[string][]Vote)},
 			"no",
 			"testuser",
 			true,
 			nil,
-			&Poll{[]string{"yes", "no"}, []Vote{Vote{"no", "testuser"}}},
+			&Poll{
+				[]string{"yes", "no"},
+				map[string][]Vote{
+					"no": []Vote{Vote{"no", "testuser"}},
+				},
+			},
 		},
 		{
-			&Poll{[]string{"yes", "no"}, []Vote{Vote{"yes", "testuser1"}}},
+			&Poll{
+				[]string{"yes", "no"},
+				map[string][]Vote{
+					"yes": []Vote{Vote{"yes", "testuser1"}},
+				},
+			},
 			"yes",
 			"testuser2",
 			true,
 			nil,
 			&Poll{
 				[]string{"yes", "no"},
-				[]Vote{Vote{"yes", "testuser1"}, Vote{"yes", "testuser2"}},
+				map[string][]Vote{
+					"yes": []Vote{Vote{"yes", "testuser1"}, Vote{"yes", "testuser2"}},
+				},
 			},
 		},
 		{
 			&Poll{
 				[]string{"yes", "no"},
-				[]Vote{
-					Vote{"yes", "testuser1"},
-					Vote{"no", "testuser2"},
-					Vote{"no", "testuser3"},
-					Vote{"yes", "testuser4"},
+				map[string][]Vote{
+					"yes": []Vote{Vote{"yes", "testuser1"}, Vote{"yes", "testuser4"}},
+					"no":  []Vote{Vote{"no", "testuser2"}, Vote{"no", "testuser3"}},
 				},
 			},
 			"yes",
@@ -105,30 +121,41 @@ func TestVote(t *testing.T) {
 			nil,
 			&Poll{
 				[]string{"yes", "no"},
-				[]Vote{
-					Vote{"yes", "testuser1"},
-					Vote{"no", "testuser2"},
-					Vote{"no", "testuser3"},
-					Vote{"yes", "testuser4"},
-					Vote{"yes", "testuser5"},
+				map[string][]Vote{
+					"yes": []Vote{
+						Vote{"yes", "testuser1"},
+						Vote{"yes", "testuser4"},
+						Vote{"yes", "testuser5"},
+					},
+					"no": []Vote{Vote{"no", "testuser2"}, Vote{"no", "testuser3"}},
 				},
 			},
 		},
 		{
-			&Poll{[]string{"yes", "no"}, []Vote{}},
+			&Poll{[]string{"yes", "no"}, make(map[string][]Vote)},
 			"y",
 			"testuser",
 			false,
 			errors.New("unknown option for this poll"),
-			&Poll{[]string{"yes", "no"}, []Vote{}},
+			&Poll{[]string{"yes", "no"}, make(map[string][]Vote)},
 		},
 		{
-			&Poll{[]string{"yes", "no"}, []Vote{Vote{"yes", "testuser"}}},
+			&Poll{
+				[]string{"yes", "no"},
+				map[string][]Vote{
+					"yes": []Vote{Vote{"yes", "testuser"}},
+				},
+			},
 			"no",
 			"testuser",
 			false,
 			errors.New("this voter already voted on this poll"),
-			&Poll{[]string{"yes", "no"}, []Vote{Vote{"yes", "testuser"}}},
+			&Poll{
+				[]string{"yes", "no"},
+				map[string][]Vote{
+					"yes": []Vote{Vote{"yes", "testuser"}},
+				},
+			},
 		},
 	}
 
@@ -144,7 +171,7 @@ func TestVote(t *testing.T) {
 				t.Errorf("Vote didn't return expected error: %v", test.err)
 			}
 
-			if !test.poll.equal(*test.expected) {
+			if !reflect.DeepEqual(*test.expected, *test.poll) {
 				t.Errorf("Vote didn't update poll correctly.\nGot: %+v\nWant: %+v",
 					test.poll, test.expected)
 			}
@@ -157,8 +184,19 @@ func TestGetResult(t *testing.T) {
 		poll     Poll
 		expected []string
 	}{
-		{Poll{[]string{"yes", "no"}, []Vote{Vote{"yes", "testuser"}}}, []string{"yes"}},
-		{Poll{[]string{"yes", "no"}, []Vote{}}, []string{"yes", "no"}},
+		{
+			Poll{
+				[]string{"yes", "no"},
+				map[string][]Vote{
+					"yes": []Vote{Vote{"yes", "testuser"}},
+				},
+			},
+			[]string{"yes"},
+		},
+		{
+			Poll{[]string{"yes", "no"}, make(map[string][]Vote)},
+			[]string{},
+		},
 	}
 
 	for _, test := range tests {

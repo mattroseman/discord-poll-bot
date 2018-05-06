@@ -8,7 +8,7 @@ import (
 // Poll contains information relevent to a specific poll
 type Poll struct {
 	Options []string
-	Votes   []Vote
+	Votes   map[string][]Vote
 }
 
 // Vote represents a vote by one person towards one option
@@ -23,7 +23,7 @@ func NewPoll(options []string) (*Poll, error) {
 		return nil, errors.New("must supply at least two options")
 	}
 
-	return &Poll{options, []Vote{}}, nil
+	return &Poll{options, make(map[string][]Vote)}, nil
 }
 
 func (p Poll) equal(q Poll) bool {
@@ -38,15 +38,19 @@ func (p Poll) equal(q Poll) bool {
 
 // Vote casts a vote towards one of the options in the given Poll
 func (p *Poll) Vote(option, voter string) error {
-	for _, v := range p.Votes {
-		if v.Voter == voter {
-			return errors.New("this voter already voted on this poll")
+	// check if voter has already voted
+	for _, votes := range p.Votes {
+		for _, v := range votes {
+			if v.Voter == voter {
+				return errors.New("this voter already voted on this poll")
+			}
 		}
 	}
 
+	// check if the given option exists
 	for _, o := range p.Options {
 		if o == option {
-			p.Votes = append(p.Votes, Vote{option, voter})
+			p.Votes[o] = append(p.Votes[o], Vote{o, voter})
 			return nil
 		}
 	}
@@ -59,18 +63,11 @@ func (p Poll) GetResult() []string {
 	mostVotes := 0
 	winningOptions := []string{}
 
-	for _, o := range p.Options {
-		numVotes := 0
-		for _, v := range p.Votes {
-			if v.Option == o {
-				numVotes++
-			}
-		}
-
-		if numVotes > mostVotes {
+	for o, votes := range p.Votes {
+		if l := len(votes); l > mostVotes {
 			winningOptions = []string{o}
-			mostVotes = numVotes
-		} else if numVotes == mostVotes {
+			mostVotes = l
+		} else if l := len(votes); l == mostVotes {
 			winningOptions = append(winningOptions, o)
 		}
 	}
