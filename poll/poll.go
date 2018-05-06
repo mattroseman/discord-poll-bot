@@ -1,92 +1,79 @@
 package poll
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-// InvalidOptionError is returned when a vote is cast for an option that doesn't
-// exist
-type InvalidOptionError struct {
-	msg    string
-	option string
-}
-
-func (e *InvalidOptionError) Error() string {
-	return fmt.Sprintf("%s\noption: %s\n", e.msg, e.option)
-}
-
-// AlreadyVotedError is returned when a user ties to vote multiple times for the
-// same poll
-type AlreadyVotedError struct {
-	msg  string
-	user string
-}
-
-func (e *AlreadyVotedError) Error() string {
-	return fmt.Sprintf("%s\nuser: %s\n", e.msg, e.user)
-}
-
-// Poll contains the data relevant to a particular poll. The description, the voting options,
-// and a list of votes.
+// Poll contains information relevent to a specific poll
 type Poll struct {
-	ID          int
-	Description string
-	Options     map[string]int
-	Votes       []Vote
+	Options []string
+	Votes   []Vote
 }
 
-// Vote represents a users vote towards a particular option
+// Vote represents a vote by one person towards one option
 type Vote struct {
-	User   string
 	Option string
+	Voter  string
 }
 
-var prevID = 0
+// NewPoll creates a new Poll type with the given options and returns a pointer to it.
+func NewPoll(options []string) (*Poll, error) {
+	if len(options) < 2 {
+		return nil, errors.New("must supply at least two options")
+	}
 
-// New creates and returns a new Poll type
-func New(description string, options []string) Poll {
-	optionMap := make(map[string]int)
-	for _, option := range options {
-		optionMap[option] = 0
-	}
-	return Poll{
-		ID:          prevID + 1,
-		Description: description,
-		Options:     optionMap,
-		Votes:       []Vote{},
-	}
+	return &Poll{options, []Vote{}}, nil
 }
 
-// Vote is a method on a Poll type that casts a vote towards a specified option.
-// Returns an error if the specified option isn't available.
-func (p *Poll) Vote(user string, option string) error {
-	if _, ok := p.Options[option]; !ok {
-		return &InvalidOptionError{"The given option isn't valid for the current poll", option}
-	}
-
-	for _, vote := range p.Votes {
-		if vote.User == user {
-			return &AlreadyVotedError{"The user already voted for the current poll", user}
+func (p Poll) equal(q Poll) bool {
+	if fmt.Sprintf("%q", p.Options) == fmt.Sprintf("%q", q.Options) {
+		if fmt.Sprintf("%q", p.Votes) == fmt.Sprintf("%q", q.Votes) {
+			return true
 		}
 	}
 
-	p.Options[option]++
-	p.Votes = append(p.Votes, Vote{user, option})
-
-	return nil
+	return false
 }
 
-// GetResult returns a slice of the current options with the most votes
-func (p *Poll) GetResult() []string {
-	var maxVotes int
-	var topOptions []string
-
-	for option, voteCount := range p.Options {
-		if voteCount > maxVotes {
-			maxVotes = voteCount
-			topOptions = []string{option}
-		} else if voteCount == maxVotes {
-			topOptions = append(topOptions, option)
+// Vote casts a vote towards one of the options in the given Poll
+func (p *Poll) Vote(option, voter string) error {
+	for _, v := range p.Votes {
+		if v.Voter == voter {
+			return errors.New("this voter already voted on this poll")
 		}
 	}
 
-	return topOptions
+	for _, o := range p.Options {
+		if o == option {
+			p.Votes = append(p.Votes, Vote{option, voter})
+			return nil
+		}
+	}
+
+	return errors.New("unkown option for this poll")
+}
+
+// GetResult returns a slice of the Poll options with the most votes
+func (p Poll) GetResult() []string {
+	mostVotes := 0
+	winningOptions := []string{}
+
+	for _, o := range p.Options {
+		numVotes := 0
+		for _, v := range p.Votes {
+			if v.Option == o {
+				numVotes++
+			}
+		}
+
+		if numVotes > mostVotes {
+			winningOptions = []string{o}
+			mostVotes = numVotes
+		} else if numVotes == mostVotes {
+			winningOptions = append(winningOptions, o)
+		}
+	}
+
+	return winningOptions
 }

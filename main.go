@@ -12,11 +12,11 @@ import (
 
 var botID string
 
-// pollRegex captures commands of the form
-// "!poll some description text [option1, option2, option3]"
+// newPollRegex captures commands of the form
+// "!newpoll some description text [option1, option2, option3]"
 // and finds group1 = (some description text) and
 // group2 = (option1, option2, option3)
-var pollRegex = regexp.MustCompile(`^!poll ([^\[]*)\[(.*)\]$`)
+var newPollRegex = regexp.MustCompile(`!newpoll ([^\[]*)\[(.*)\]$`)
 
 // voteRegex captures commands of the form
 // "!vote some option"
@@ -59,16 +59,37 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Content[:5] == "!poll" {
+		handleShowPoll(s, m)
+	}
+
+	if m.Content[:8] == "!newpoll" {
 		handleNewPoll(s, m)
 	}
 
 	if m.Content[:5] == "!vote" {
 		handleNewVote(s, m)
 	}
+
+	if m.Content[:7] == "!result" {
+		handleGetResults(s, m)
+	}
+}
+
+func handleShowPoll(s *discordgo.Session, m *discordgo.MessageCreate) {
+	msg := fmt.Sprintf("Current Poll: %s", currentPoll.Description)
+
+	for option, numVotes := range currentPoll.Options {
+		msg = msg + fmt.Sprintf("\nOption: %s | Votes: %d", option, numVotes)
+	}
+
+	_, err := s.ChannelMessageSend(m.ChannelID, msg)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func handleNewPoll(s *discordgo.Session, m *discordgo.MessageCreate) {
-	matches := pollRegex.FindStringSubmatch(m.Content)
+	matches := newPollRegex.FindStringSubmatch(m.Content)
 	if matches == nil {
 		_, err := s.ChannelMessageSend(m.ChannelID,
 			fmt.Sprintf("Sorry %s, I couldn't understand that command.", m.Author.Username))
@@ -123,6 +144,24 @@ func handleNewVote(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	_, err = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("%s has voted for %s", m.Author.Username, option))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func handleGetResults(s *discordgo.Session, m *discordgo.MessageCreate) {
+	winners := currentPoll.GetResult()
+	if len(winners) == 1 {
+		_, err := s.ChannelMessageSend(m.ChannelID,
+			fmt.Sprintf("The votes are in. \"%s\" has received the most votes", winners[0]))
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+
+	_, err := s.ChannelMessageSend(m.ChannelID,
+		fmt.Sprintf("The votes are in. There is a tie between %q", winners))
 	if err != nil {
 		panic(err)
 	}
