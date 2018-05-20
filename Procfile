@@ -1,1 +1,1 @@
-worker: main
+worker: discord-poll-bot
