@@ -13,8 +13,6 @@ import (
 var botID string
 
 func main() {
-	fmt.Printf("go main script started")
-
 	token := os.Getenv("DISCORD_BOT_AUTH_TOKEN")
 
 	dg, err := discordgo.New("Bot " + token)
@@ -36,7 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("Bot %v is running", botID)
+	fmt.Printf("Bot %v is running\n", botID)
 
 	<-make(chan struct{})
 	return
@@ -47,13 +45,15 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if m.Content[:7] == "!choose" {
+	if len(m.Content) > 6 && m.Content[:7] == "!choose" {
 		handleChoose(s, m)
 	}
 }
 
 func handleChoose(s *discordgo.Session, m *discordgo.MessageCreate) {
-	options := strings.Split(m.Content[7:], ", ")
+	options := strings.Split(m.Content[8:], ", ")
+	fmt.Printf("%q\n", options)
+	fmt.Printf("%d mod %d\n", rand.Int(), len(options))
 
 	option := options[int(math.Mod(float64(rand.Int()), float64(len(options))))]
 
