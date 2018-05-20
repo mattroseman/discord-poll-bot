@@ -13,6 +13,8 @@ import (
 var botID string
 
 func main() {
+	fmt.Printf("go main scrip started")
+
 	token := os.Getenv("DISCORD_BOT_AUTH_TOKEN")
 
 	dg, err := discordgo.New("Bot " + token)
