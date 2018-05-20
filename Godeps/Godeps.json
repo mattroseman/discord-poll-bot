@@ -1,0 +1,29 @@
+{
+	"ImportPath": "github.com/mroseman95/discord-poll-bot",
+	"GoVersion": "go1.10",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/bwmarrin/discordgo",
+			"Comment": "v0.18.0-4-g73f6772",
+			"Rev": "73f6772a2b7cc95e29c462e4f15bf07cbe0d3854"
+		},
+		{
+			"ImportPath": "github.com/gorilla/websocket",
+			"Comment": "v1.2.0-40-g21ab95f",
+			"Rev": "21ab95fa12b9bdd8fecf5fa3586aad941cc98785"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/nacl/secretbox",
+			"Rev": "1a580b3eff7814fc9b40602fd35256c63b50f491"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/poly1305",
+			"Rev": "1a580b3eff7814fc9b40602fd35256c63b50f491"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/salsa20/salsa",
+			"Rev": "1a580b3eff7814fc9b40602fd35256c63b50f491"
+		}
+	]
+}
