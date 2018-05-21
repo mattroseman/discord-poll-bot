@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -13,6 +13,7 @@ import (
 var botID string
 
 func main() {
+	rand.Seed(time.Now().Unix())
 	token := os.Getenv("DISCORD_BOT_AUTH_TOKEN")
 
 	dg, err := discordgo.New("Bot " + token)
@@ -55,7 +56,7 @@ func handleChoose(s *discordgo.Session, m *discordgo.MessageCreate) {
 	fmt.Printf("%q\n", options)
 	fmt.Printf("%d mod %d\n", rand.Int(), len(options))
 
-	option := options[int(math.Mod(float64(rand.Int()), float64(len(options))))]
+	option := options[rand.Intn(len(options))]
 
 	msg := "How about " + option
 
