@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -46,17 +47,21 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if len(m.Content) > 6 && m.Content[:7] == "!choose" {
+	ok, err := regexp.MatchString("^!choose ", m.Content)
+	if err != nil {
+		panic(err)
+	}
+	if ok {
 		handleChoose(s, m)
 	}
 }
 
 func handleChoose(s *discordgo.Session, m *discordgo.MessageCreate) {
 	options := strings.Split(m.Content[8:], ", ")
-	fmt.Printf("%q\n", options)
-	fmt.Printf("%d mod %d\n", rand.Int(), len(options))
 
 	option := options[rand.Intn(len(options))]
+
+	fmt.Printf("%q chose: %s\n", options, option)
 
 	msg := "How about " + option
 
